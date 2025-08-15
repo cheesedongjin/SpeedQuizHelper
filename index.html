@@ -9,46 +9,62 @@
 <body>
 <header>
   <h1>스피드 퀴즈</h1>
-  <div class="actions">
-    <button id="btnFull" class="ghost" title="전체화면 전환">전체화면</button>
-    <button id="btnEditCats" class="ghost" title="카테고리 편집">카테고리 편집</button>
-    <button id="btnResetCats" class="ghost" title="사용된 카테고리 초기화">카테고리 리셋</button>
-    <button id="btnHardReset" class="danger" title="모든 데이터 초기화">전체 초기화</button>
-  </div>
+  <nav class="tabs">
+    <button data-screen="catScreen" class="active">카테고리</button>
+    <button data-screen="gameScreen">게임</button>
+    <button data-screen="settingsScreen">설정</button>
+  </nav>
 </header>
 
 <main>
-  <!-- 왼쪽: 카테고리 -->
-  <section class="panel">
-    <div class="row">
-      <h2>카테고리</h2>
-      <span class="spacer"></span>
-      <label><input type="checkbox" id="toggleHideUsed"> 사용된 카테고리 숨기기</label>
-    </div>
+  <section id="catScreen" class="screen panel">
+    <h2>카테고리</h2>
     <div id="catList" class="categories"></div>
-    <div class="divider"></div>
-    <div class="row">
-      <label><input type="checkbox" id="toggleBlockOnEnd" checked> 라운드 종료 시 선택 카테고리 막기</label>
-    </div>
-    <div class="hint">라운드 시작 시 하나의 카테고리를 선택하세요. 종료 시 막기 옵션이 켜져 있으면 해당 카테고리는 다음 라운드에서 선택할 수 없습니다.</div>
+    <div class="hint">라운드 시작 시 하나의 카테고리를 선택하세요.</div>
   </section>
 
-  <!-- 오른쪽: 게임 -->
-  <section class="panel game">
-    <div>
-      <h2>팀 & 점수</h2>
-      <div class="scoreboard" id="scoreboard"></div>
+  <section id="gameScreen" class="screen panel hidden">
+    <h2>게임</h2>
+    <div class="scoreboard" id="scoreboard"></div>
+    <div class="row">
+      <button id="btnNextTeam" class="ghost" title="다음 팀으로 활성 전환">다음 팀</button>
+      <span class="spacer"></span>
+    </div>
+    <div class="timer" id="timerBar">
+      <div class="big" id="timeRemain">60</div>
+      <div class="row">
+        <button id="btnStart" class="primary">라운드 시작</button>
+        <button id="btnPause" class="ghost" disabled>일시정지</button>
+        <button id="btnEnd" class="ghost" disabled>강제 종료</button>
+      </div>
+    </div>
+    <div class="word">
+      <div class="bigword" id="bigWord">라운드를 시작하세요</div>
+    </div>
+    <div class="actions-grid">
+      <button id="btnPass" class="warn" disabled>패스 (Space)</button>
+      <button id="btnCorrect" class="success" disabled>정답 (Enter)</button>
+    </div>
+    <div class="mutetext">
+      단축키: <span class="kbd">Space</span>=패스, <span class="kbd">Enter</span>=정답, <span class="kbd">S</span>=시작/일시정지, <span class="kbd">F</span>=전체화면.
+    </div>
+  </section>
+
+  <section id="settingsScreen" class="screen panel hidden">
+    <h2>설정</h2>
+    <div class="section">
+      <h3>팀</h3>
       <div class="row">
         <input type="text" id="newTeamName" placeholder="팀 이름 입력 후 추가" />
         <button id="btnAddTeam">팀 추가</button>
-        <span class="spacer"></span>
-        <label title="정답 버튼을 누르면 해당 팀 점수를 자동으로 +1 합니다.">
-          <input type="checkbox" id="toggleAutoScore" checked> 정답 시 자동 가점(+1)
-        </label>
       </div>
+      <label title="정답 버튼을 누르면 해당 팀 점수를 자동으로 +1 합니다.">
+        <input type="checkbox" id="toggleAutoScore" checked> 정답 시 자동 가점(+1)
+      </label>
     </div>
 
-    <div class="timer" id="timerBar">
+    <div class="section">
+      <h3>게임 시간</h3>
       <div class="row" style="gap:10px; align-items:center;">
         <label for="roundSeconds">라운드 시간(초)</label>
         <input type="number" id="roundSeconds" min="10" step="5" value="60" style="width:120px">
@@ -58,27 +74,22 @@
           <button data-preset="90" class="pill">90</button>
         </div>
       </div>
-      <div class="spacer"></div>
-      <div class="big" id="timeRemain">60</div>
-      <div class="spacer"></div>
+    </div>
+
+    <div class="section">
+      <h3>카테고리</h3>
+      <label><input type="checkbox" id="toggleHideUsed"> 사용된 카테고리 숨기기</label>
+      <label><input type="checkbox" id="toggleBlockOnEnd" checked> 라운드 종료 시 선택 카테고리 막기</label>
       <div class="row">
-        <button id="btnStart" class="primary">라운드 시작</button>
-        <button id="btnPause" class="ghost" disabled>일시정지</button>
-        <button id="btnEnd" class="ghost" disabled>강제 종료</button>
+        <button id="btnEditCats" class="ghost" title="카테고리 편집">카테고리 편집</button>
+        <button id="btnResetCats" class="ghost" title="사용된 카테고리 초기화">카테고리 리셋</button>
       </div>
     </div>
 
-    <div class="word">
-      <div class="bigword" id="bigWord">라운드를 시작하세요</div>
-    </div>
-
-    <div class="actions-grid">
-      <button id="btnPass" class="warn" disabled>패스 (Space)</button>
-      <button id="btnCorrect" class="success" disabled>정답 (Enter)</button>
-      <button id="btnNextTeam" class="ghost" title="다음 팀으로 활성 전환">다음 팀</button>
-    </div>
-    <div class="mutetext">
-      단축키: <span class="kbd">Space</span>=패스, <span class="kbd">Enter</span>=정답, <span class="kbd">S</span>=시작/일시정지, <span class="kbd">F</span>=전체화면.
+    <div class="section">
+      <h3>기타</h3>
+      <button id="btnFull" class="ghost" title="전체화면 전환">전체화면</button>
+      <button id="btnHardReset" class="danger" title="모든 데이터 초기화">전체 초기화</button>
     </div>
   </section>
 </main>

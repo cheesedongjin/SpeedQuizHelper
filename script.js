@@ -158,6 +158,20 @@
     return arr;
   }
 
+  // ----- 화면 전환 -----
+  const screens = {
+    catScreen: $('#catScreen'),
+    gameScreen: $('#gameScreen'),
+    settingsScreen: $('#settingsScreen')
+  };
+  const tabButtons = document.querySelectorAll('nav.tabs button');
+  function showScreen(id){
+    Object.values(screens).forEach(s=>s.classList.add('hidden'));
+    screens[id]?.classList.remove('hidden');
+    tabButtons.forEach(btn=>btn.classList.toggle('active', btn.dataset.screen===id));
+  }
+  tabButtons.forEach(btn=>btn.addEventListener('click', ()=>showScreen(btn.dataset.screen)));
+
   // ----- 렌더링: 카테고리 -----
   const catList = $('#catList');
   let selectedCategoryId = null;
@@ -182,6 +196,7 @@
         radio.checked = true;
         selectedCategoryId = c.id;
         updateStartBtnState();
+        showScreen('gameScreen');
       });
       catList.appendChild(row);
     }
@@ -254,6 +269,7 @@
       });
       board.appendChild(card);
     }
+    updateStartBtnState();
   }
 
   // ----- 라운드 진행 -----
@@ -300,6 +316,7 @@
     if(round.running) return;
     if(!state.activeTeamId){ alert('활성 팀을 선택하세요.'); return; }
     if(!selectedCategoryId || state.usedCategoryIds.includes(selectedCategoryId)){ alert('사용 가능한 카테고리를 선택하세요.'); return; }
+    showScreen('gameScreen');
     round.categoryId = selectedCategoryId;
     const cat = state.categories.find(c=>c.id===round.categoryId);
     round.words = shuffle([...cat.words]);
@@ -389,6 +406,7 @@
     saveState();
     showSummary(timeup);
     nextTeam();
+    showScreen('catScreen');
   }
 
   function onPass(){
@@ -581,4 +599,5 @@
 
   loadState();
   renderAll();
+  showScreen('catScreen');
 })();
