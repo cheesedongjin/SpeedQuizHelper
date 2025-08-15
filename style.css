@@ -315,3 +315,25 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   font-weight: 700;
   font-size: 12px;
 }
+
+/* 화면 전환 및 탭 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.tabs button {
+  flex: 1;
+}
+.tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+.screen.hidden { display: none; }
+.screen { display: flex; flex-direction: column; gap: 14px; }
+.section { display: flex; flex-direction: column; gap: 8px; }
+
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  .timer .big { font-size: 40px; }
+}
