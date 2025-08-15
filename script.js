@@ -541,7 +541,6 @@
     btnPass.disabled = false;
     btnCorrect.disabled = false;
     btnNextTeam.disabled = true;
-    $('#timerBar').style.color = '#fff';
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
