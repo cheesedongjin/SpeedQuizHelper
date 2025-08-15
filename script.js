@@ -338,6 +338,10 @@
       });
       board.appendChild(card);
     }
+    // hide next-team button when not needed
+    if(btnNextTeam){
+      btnNextTeam.style.display = state.teams.length>1 ? '' : 'none';
+    }
     updateStartBtnState();
   }
 
@@ -369,7 +373,7 @@
   };
 
   function updateStartBtnState(){
-    const hasTeam = !!state.activeTeamId;
+    const hasTeam = state.teams.length===0 || !!state.activeTeamId;
     const hasCat = !!selectedCategoryId && !state.usedCategoryIds.includes(selectedCategoryId);
     btnStart.disabled = !(hasTeam && hasCat && !round.running);
   }
@@ -385,8 +389,14 @@
 
   function startRound(){
     if(round.running) return;
-    if(!state.activeTeamId){ alert('활성 팀을 선택하세요.'); return; }
-    if(!selectedCategoryId || state.usedCategoryIds.includes(selectedCategoryId)){ alert('사용 가능한 카테고리를 선택하세요.'); return; }
+    if(state.teams.length>0 && !state.activeTeamId){
+      alert('활성 팀을 선택하세요.');
+      return;
+    }
+    if(!selectedCategoryId || state.usedCategoryIds.includes(selectedCategoryId)){
+      alert('사용 가능한 카테고리를 선택하세요.');
+      return;
+    }
     showScreen('gameScreen');
     round.categoryId = selectedCategoryId;
     const cat = state.categories.find(c=>c.id===round.categoryId);
@@ -411,6 +421,7 @@
     btnPass.disabled = false;
     btnCorrect.disabled = false;
     btnNextTeam.disabled = true;
+    $('#timerBar').style.color = '#fff';
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
@@ -460,6 +471,7 @@
     btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true; btnNextTeam.disabled=false;
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
+    $('#timerBar').style.color='';
 
     if(timeup){
       beep();
@@ -482,12 +494,20 @@
     showScreen('catScreen');
   }
 
+  function afterAnswer(){
+    if(round.correct + round.pass >= round.words.length){
+      endRound(false);
+    }else{
+      pickNextWord();
+    }
+  }
+
   function onPass(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
     round.pass++;
     if(w) round.passedWords.push(w);
-    pickNextWord();
+    afterAnswer();
   }
   function onCorrect(){
     if(!round.running || round.paused) return;
@@ -495,7 +515,7 @@
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
-    pickNextWord();
+    afterAnswer();
   }
 
   // 단순 비프음 생성
