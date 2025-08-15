@@ -212,6 +212,9 @@ main {
   letter-spacing: 1px;
   min-width: 120px;
   text-align: center;
+  background: var(--panel);
+  padding: 8px 12px;
+  border-radius: 8px;
 }
 
 .word {
