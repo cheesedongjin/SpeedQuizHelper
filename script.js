@@ -294,7 +294,9 @@
     words:[],
     wordIndex:-1,
     correct:0,
-    pass:0
+    pass:0,
+    correctWords:[],
+    passedWords:[]
   };
 
   function updateStartBtnState(){
@@ -323,6 +325,8 @@
     round.wordIndex = -1;
     pickNextWord();
     round.correct = 0; round.pass = 0;
+    round.correctWords = [];
+    round.passedWords = [];
 
     const secs = clampSeconds(Number(roundSecondsInput.value)||60);
     state.settings.roundSeconds = secs;
@@ -411,12 +415,16 @@
 
   function onPass(){
     if(!round.running || round.paused) return;
+    const w = round.words[round.wordIndex];
     round.pass++;
+    if(w) round.passedWords.push(w);
     pickNextWord();
   }
   function onCorrect(){
     if(!round.running || round.paused) return;
+    const w = round.words[round.wordIndex];
     round.correct++;
+    if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
     pickNextWord();
   }
@@ -439,12 +447,18 @@
     const dlg = $('#dlgSummary');
     const body = $('#summaryBody');
     const catName = state.categories.find(c=>c.id===round.categoryId)?.name || '(없음)';
+    const correctList = round.correctWords.map(w=>escapeHtml(w)).join(', ') || '(없음)';
+    const passList = round.passedWords.map(w=>escapeHtml(w)).join(', ') || '(없음)';
     body.innerHTML = `
       <div class="chips">
         <span class="chip">카테고리: ${escapeHtml(catName)}</span>
         <span class="chip">정답: ${round.correct}</span>
         <span class="chip">패스: ${round.pass}</span>
         <span class="chip">${timeup?'시간 종료':'강제 종료'}</span>
+      </div>
+      <div class="summary-words">
+        <div><strong>정답:</strong> ${correctList}</div>
+        <div><strong>패스:</strong> ${passList}</div>
       </div>
     `;
     dlg.showModal();
