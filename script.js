@@ -377,6 +377,7 @@
     btnPass.disabled = false;
     btnCorrect.disabled = false;
     btnNextTeam.disabled = true;
+    $('#timerBar').style.color = '#fff';
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
@@ -426,6 +427,7 @@
     btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true; btnNextTeam.disabled=false;
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
+    $('#timerBar').style.color='';
 
     if(timeup){
       beep();
