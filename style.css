@@ -218,7 +218,7 @@ main {
 }
 
 .word {
-  flex: 1;
+  flex: none; /* prevent container from expanding/shrinking with font size */
   display: flex;
   align-items: center;
   justify-content: center;
