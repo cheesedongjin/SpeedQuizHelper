@@ -84,7 +84,7 @@
   ];
 
   /** @type {{
-    teams: {id:string,name:string,score:number}[],
+    teams: {id:string,name:string,score:number,rounds:number}[],
     activeTeamId: string|null,
     categories: {id:string,name:string,words:string[]}[],
     usedCategoryIds: string[],
@@ -106,6 +106,8 @@
         if(state.settings && typeof state.settings.autoScoreOnCorrect === 'undefined'){
           state.settings.autoScoreOnCorrect = true;
         }
+        // ensure rounds property exists for teams loaded from older state
+        state.teams?.forEach(t=>{ if(typeof t.rounds !== 'number') t.rounds = 0; });
         return;
       }catch(e){}
     }
@@ -195,13 +197,14 @@
   const board = $('#scoreboard');
   function addTeam(name){
     if(!name) return;
-    const t = {id:uid('team'), name, score:0};
+    const t = {id:uid('team'), name, score:0, rounds:0};
     state.teams.push(t);
     if(!state.activeTeamId) state.activeTeamId = t.id;
     saveState();
     renderTeams();
   }
   function setActiveTeam(id){
+    if(round.running) return;
     state.activeTeamId = id;
     saveState();
     renderTeams();
@@ -235,6 +238,7 @@
       const card = el('div',{class:'team'+(t.id===state.activeTeamId?' active':''), dataset:{tid:t.id}});
       const name = el('div',{class:'name'}, t.name);
       const score = el('div',{class:'score'}, String(t.score));
+      const rounds = el('div',{class:'rounds'}, `라운드: ${t.rounds||0}`);
       const controls = el('div',{class:'controls'},
         el('button',{onClick:()=>incScore(t.id,-1)},'−1'),
         el('button',{onClick:()=>incScore(t.id,+1)},'+1'),
@@ -242,6 +246,7 @@
       );
       card.appendChild(name);
       card.appendChild(score);
+      card.appendChild(rounds);
       card.appendChild(controls);
       card.addEventListener('click', (e)=>{
         if(e.target.tagName==='BUTTON') return;
@@ -259,6 +264,7 @@
   const btnEnd = $('#btnEnd');
   const btnPass = $('#btnPass');
   const btnCorrect = $('#btnCorrect');
+  const btnNextTeam = $('#btnNextTeam');
   const roundSecondsInput = $('#roundSeconds');
 
   let round = {
@@ -314,6 +320,7 @@
     btnEnd.disabled = false;
     btnPass.disabled = false;
     btnCorrect.disabled = false;
+    btnNextTeam.disabled = true;
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
@@ -360,7 +367,7 @@
     if(!round.running) return;
     clearInterval(round.timerId); round.timerId=null;
     round.running=false; round.paused=false;
-    btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true;
+    btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true; btnNextTeam.disabled=false;
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
 
@@ -374,7 +381,14 @@
         renderCategories();
       }
     }
+    // increment round count for current team
+    if(state.activeTeamId){
+      const t = state.teams.find(t=>t.id===state.activeTeamId);
+      if(t){ t.rounds = (t.rounds||0)+1; }
+    }
+    saveState();
     showSummary(timeup);
+    nextTeam();
   }
 
   function onPass(){
@@ -493,7 +507,7 @@
     if(name){ addTeam(name); $('#newTeamName').value=''; }
   });
 
-  $('#btnNextTeam').addEventListener('click', nextTeam);
+  btnNextTeam.addEventListener('click', nextTeam);
   $('#btnStart').addEventListener('click', startRound);
   $('#btnPause').addEventListener('click', ()=>{
     if(!round.running) return;
