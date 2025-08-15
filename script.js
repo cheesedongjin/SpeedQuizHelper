@@ -448,12 +448,20 @@
     showScreen('catScreen');
   }
 
+  function afterAnswer(){
+    if(round.correct + round.pass >= round.words.length){
+      endRound(false);
+    }else{
+      pickNextWord();
+    }
+  }
+
   function onPass(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
     round.pass++;
     if(w) round.passedWords.push(w);
-    pickNextWord();
+    afterAnswer();
   }
   function onCorrect(){
     if(!round.running || round.paused) return;
@@ -461,7 +469,7 @@
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
-    pickNextWord();
+    afterAnswer();
   }
 
   // 단순 비프음 생성
