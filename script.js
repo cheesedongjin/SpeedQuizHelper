@@ -294,6 +294,10 @@
       });
       board.appendChild(card);
     }
+    // hide next-team button when not needed
+    if(btnNextTeam){
+      btnNextTeam.style.display = state.teams.length>1 ? '' : 'none';
+    }
     updateStartBtnState();
   }
 
@@ -325,7 +329,7 @@
   };
 
   function updateStartBtnState(){
-    const hasTeam = !!state.activeTeamId;
+    const hasTeam = state.teams.length===0 || !!state.activeTeamId;
     const hasCat = !!selectedCategoryId && !state.usedCategoryIds.includes(selectedCategoryId);
     btnStart.disabled = !(hasTeam && hasCat && !round.running);
   }
@@ -341,8 +345,14 @@
 
   function startRound(){
     if(round.running) return;
-    if(!state.activeTeamId){ alert('활성 팀을 선택하세요.'); return; }
-    if(!selectedCategoryId || state.usedCategoryIds.includes(selectedCategoryId)){ alert('사용 가능한 카테고리를 선택하세요.'); return; }
+    if(state.teams.length>0 && !state.activeTeamId){
+      alert('활성 팀을 선택하세요.');
+      return;
+    }
+    if(!selectedCategoryId || state.usedCategoryIds.includes(selectedCategoryId)){
+      alert('사용 가능한 카테고리를 선택하세요.');
+      return;
+    }
     showScreen('gameScreen');
     round.categoryId = selectedCategoryId;
     const cat = state.categories.find(c=>c.id===round.categoryId);
