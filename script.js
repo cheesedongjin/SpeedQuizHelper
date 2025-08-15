@@ -476,6 +476,21 @@
   const btnNextTeam = $('#btnNextTeam');
   const roundSecondsInput = $('#roundSeconds');
 
+  function fitBigWord(){
+    bigWord.style.fontSize = '';
+    const container = bigWord.parentElement;
+    const style = getComputedStyle(container);
+    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const maxWidth = container.clientWidth - padding;
+    let size = parseFloat(getComputedStyle(bigWord).fontSize);
+    while(bigWord.scrollWidth > maxWidth && size > 16){
+      size -= 2;
+      bigWord.style.fontSize = size + 'px';
+    }
+  }
+
+  window.addEventListener('resize', fitBigWord);
+
   let round = {
     running:false,
     paused:false,
@@ -501,10 +516,12 @@
   function pickNextWord(){
     if(round.words.length===0){
       bigWord.textContent = '제시어가 없습니다 (카테고리 수정 필요)';
+      fitBigWord();
       return;
     }
     round.wordIndex = (round.wordIndex+1) % round.words.length;
     bigWord.textContent = round.words[round.wordIndex];
+    fitBigWord();
   }
 
   function startRound(){

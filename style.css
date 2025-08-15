@@ -235,6 +235,7 @@ main {
   letter-spacing: 1px;
   line-height: 1.15;
   word-break: keep-all;
+  white-space: nowrap;
 }
 
 .actions-grid {
