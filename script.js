@@ -596,7 +596,7 @@
     pass:0,
     correctWords:[],
     passedWords:[],
-    lastWarnSec:null
+    lastWarnSec:null,
     actionStack:[]
   };
 
