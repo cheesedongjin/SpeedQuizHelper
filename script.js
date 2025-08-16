@@ -362,6 +362,9 @@
         if(state.settings && typeof state.settings.autoScoreOnCorrect === 'undefined'){
           state.settings.autoScoreOnCorrect = true;
         }
+        if(state.settings && typeof state.settings.darkMode === 'undefined'){
+          state.settings.darkMode = false;
+        }
         // ensure rounds property exists for teams loaded from older state
         state.teams?.forEach(t=>{ if(typeof t.rounds !== 'number') t.rounds = 0; });
         return;
@@ -372,7 +375,7 @@
       activeTeamId: null,
       categories: DEFAULT_CATEGORIES.map(c=>({id:uid('cat'), name:c.name, words:[...c.words]})),
       usedCategoryIds: [],
-      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true },
+      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false },
       version: 2
     };
     saveState();
@@ -884,6 +887,10 @@
     }
   }
 
+  function applyTheme(){
+    document.documentElement.classList.toggle('dark', state.settings.darkMode);
+  }
+
   // ----- 이벤트 바인딩 -----
   catSearch.addEventListener('input', debounce(renderCategories, 200));
   $('#btnAddTeam').addEventListener('click', ()=>{
@@ -931,6 +938,10 @@
     state.settings.autoScoreOnCorrect = e.target.checked; saveState();
   });
 
+  $('#toggleDarkMode').addEventListener('change', (e)=>{
+    state.settings.darkMode = e.target.checked; saveState(); applyTheme();
+  });
+
   $('#btnResetCats').addEventListener('click', ()=>{
     if(confirm('사용된 카테고리 표시를 모두 해제할까요?')) resetUsedCategories();
   });
@@ -964,9 +975,11 @@
     $('#toggleHideUsed').checked = state.settings.hideUsedCategories;
     $('#toggleBlockOnEnd').checked = state.settings.blockUsedCategoryOnEnd;
     $('#toggleAutoScore').checked = state.settings.autoScoreOnCorrect;
+    $('#toggleDarkMode').checked = state.settings.darkMode;
     roundSecondsInput.value = String(state.settings.roundSeconds);
     timeRemain.textContent = String(state.settings.roundSeconds);
     updateStartBtnState();
+    applyTheme();
   }
 
   loadState();
