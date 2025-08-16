@@ -836,6 +836,45 @@
     inp.click();
   }
 
+  function exportTeams(){
+    const data = state.teams.map(t=>({name:t.name, score:t.score, rounds:t.rounds}));
+    const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'speedquiz_teams.json'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importTeams(){
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.addEventListener('change', ()=>{
+      const f = inp.files?.[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = ()=>{
+        try{
+          const arr = JSON.parse(String(r.result||''));
+          if(!Array.isArray(arr)) throw new Error('팀 배열이 아닙니다.');
+          state.teams = arr.map(t=>({
+            id: uid('team'),
+            name: String(t.name||''),
+            score: Number(t.score)||0,
+            rounds: Number(t.rounds)||0
+          }));
+          state.activeTeamId = state.teams[0]?.id || null;
+          saveState();
+          renderTeams();
+          alert('팀 데이터를 불러왔습니다.');
+        }catch(e){
+          alert('불러오기 실패: ' + e.message);
+        }
+      };
+      r.readAsText(f,'utf-8');
+    });
+    inp.click();
+  }
+
   // ----- 전체화면 -----
   function toggleFullscreen(){
     if(!document.fullscreenElement){
@@ -913,6 +952,8 @@
   $('#btnCatsCancel').addEventListener('click', ()=>$('#dlgCats').close());
   $('#btnCatsExport').addEventListener('click', exportCats);
   $('#btnCatsImport').addEventListener('click', importCats);
+  $('#btnTeamsExport').addEventListener('click', exportTeams);
+  $('#btnTeamsImport').addEventListener('click', importTeams);
 
   $('#btnSummaryOk').addEventListener('click', ()=>$('#dlgSummary').close());
 
