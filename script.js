@@ -399,7 +399,7 @@
       if(k==='class') e.className = v;
       else if(k==='dataset') { for (const [dk,dv] of Object.entries(v)) e.dataset[dk]=dv; }
       else if(k==='html') e.innerHTML = v;
-      else if(k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+      else if(k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2).toLowerCase(), v);
       else e.setAttribute(k, v);
     }
     for(const c of children){
