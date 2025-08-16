@@ -125,12 +125,16 @@ button.danger { background: var(--danger); color: #fff; border-color: var(--dang
 button.ghost { background: transparent; }
 
 input[type="text"], input[type="number"] {
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text);
   padding: 10px 12px;
   border-radius: 10px;
   width: 100%;
+}
+
+input::placeholder {
+  color: var(--muted);
 }
 
 label { font-size: 13px; color: var(--muted); }
