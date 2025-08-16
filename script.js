@@ -362,6 +362,9 @@
         if(state.settings && typeof state.settings.autoScoreOnCorrect === 'undefined'){
           state.settings.autoScoreOnCorrect = true;
         }
+        if(state.settings && typeof state.settings.darkMode === 'undefined'){
+          state.settings.darkMode = false;
+        }
         // ensure rounds property exists for teams loaded from older state
         state.teams?.forEach(t=>{ if(typeof t.rounds !== 'number') t.rounds = 0; });
         return;
@@ -372,7 +375,7 @@
       activeTeamId: null,
       categories: DEFAULT_CATEGORIES.map(c=>({id:uid('cat'), name:c.name, words:[...c.words]})),
       usedCategoryIds: [],
-      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true },
+      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false },
       version: 2
     };
     saveState();
@@ -414,6 +417,14 @@
     return arr;
   }
 
+  function debounce(fn, delay=200){
+    let t;
+    return (...args)=>{
+      clearTimeout(t);
+      t = setTimeout(()=>fn(...args), delay);
+    };
+  }
+
   // ----- 화면 전환 -----
   const screens = {
     catScreen: $('#catScreen'),
@@ -429,13 +440,16 @@
   tabButtons.forEach(btn=>btn.addEventListener('click', ()=>showScreen(btn.dataset.screen)));
 
   // ----- 렌더링: 카테고리 -----
+  const catSearch = $('#catSearch');
   const catList = $('#catList');
   let selectedCategoryId = null;
 
   function renderCategories(){
     catList.innerHTML = '';
     const hideUsed = state.settings.hideUsedCategories;
-    for(const c of state.categories){
+    const keyword = catSearch.value.trim().toLowerCase();
+    const cats = state.categories.filter(c => !keyword || c.name.toLowerCase().includes(keyword));
+    for(const c of cats){
       const used = state.usedCategoryIds.includes(c.id);
       if(hideUsed && used) continue;
       const row = el('div',{class:'cat'+(used?' locked':''), dataset:{cid:c.id}});
@@ -549,6 +563,7 @@
   const btnEnd = $('#btnEnd');
   const btnPass = $('#btnPass');
   const btnCorrect = $('#btnCorrect');
+  const btnUndo = $('#btnUndo');
   const btnNextTeam = $('#btnNextTeam');
   const roundSecondsInput = $('#roundSeconds');
 
@@ -582,6 +597,7 @@
     correctWords:[],
     passedWords:[],
     lastWarnSec:null
+    actionStack:[]
   };
 
   function updateStartBtnState(){
@@ -621,6 +637,8 @@
     round.correctWords = [];
     round.passedWords = [];
     round.lastWarnSec = null;
+    round.actionStack = [];
+    updateUndoState();
 
     const secs = clampSeconds(Number(roundSecondsInput.value)||60);
     state.settings.roundSeconds = secs;
@@ -635,6 +653,7 @@
     btnEnd.disabled = false;
     btnPass.disabled = false;
     btnCorrect.disabled = false;
+    btnUndo.disabled = true;
     btnNextTeam.disabled = true;
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
@@ -688,6 +707,8 @@
     clearInterval(round.timerId); round.timerId=null;
     round.running=false; round.paused=false;
     btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true; btnNextTeam.disabled=false;
+    btnUndo.disabled = true;
+    round.actionStack = [];
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
     $('#timerBar').style.color='';
@@ -721,21 +742,50 @@
     }
   }
 
+  function updateUndoState(){
+    btnUndo.disabled = round.actionStack.length===0;
+  }
+
+  function undoLastAction(){
+    if(round.actionStack.length===0) return;
+    const act = round.actionStack.pop();
+    if(act.type==='pass'){
+      if(round.pass>0) round.pass--;
+      if(round.passedWords.length>0) round.passedWords.pop();
+    }else if(act.type==='correct'){
+      if(round.correct>0) round.correct--;
+      if(round.correctWords.length>0) round.correctWords.pop();
+      if(state.activeTeamId && state.settings.autoScoreOnCorrect){
+        incScore(state.activeTeamId, -1);
+      }
+    }
+    round.wordIndex = act.index;
+    bigWord.textContent = act.word;
+    fitBigWord();
+    updateUndoState();
+  }
+
   function onPass(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
+    const idx = round.wordIndex;
     round.pass++;
     if(w) round.passedWords.push(w);
     beep(440);
+    round.actionStack.push({type:'pass', word:w, index:idx});
+    updateUndoState();
     afterAnswer();
   }
   function onCorrect(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
+    const idx = round.wordIndex;
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
     beep(1200);
+    round.actionStack.push({type:'correct', word:w, index:idx});
+    updateUndoState();
     afterAnswer();
   }
 
@@ -840,6 +890,45 @@
     inp.click();
   }
 
+  function exportTeams(){
+    const data = state.teams.map(t=>({name:t.name, score:t.score, rounds:t.rounds}));
+    const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'speedquiz_teams.json'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importTeams(){
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.addEventListener('change', ()=>{
+      const f = inp.files?.[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = ()=>{
+        try{
+          const arr = JSON.parse(String(r.result||''));
+          if(!Array.isArray(arr)) throw new Error('팀 배열이 아닙니다.');
+          state.teams = arr.map(t=>({
+            id: uid('team'),
+            name: String(t.name||''),
+            score: Number(t.score)||0,
+            rounds: Number(t.rounds)||0
+          }));
+          state.activeTeamId = state.teams[0]?.id || null;
+          saveState();
+          renderTeams();
+          alert('팀 데이터를 불러왔습니다.');
+        }catch(e){
+          alert('불러오기 실패: ' + e.message);
+        }
+      };
+      r.readAsText(f,'utf-8');
+    });
+    inp.click();
+  }
+
   // ----- 전체화면 -----
   function toggleFullscreen(){
     if(!document.fullscreenElement){
@@ -849,7 +938,12 @@
     }
   }
 
+  function applyTheme(){
+    document.documentElement.classList.toggle('dark', state.settings.darkMode);
+  }
+
   // ----- 이벤트 바인딩 -----
+  catSearch.addEventListener('input', debounce(renderCategories, 200));
   $('#btnAddTeam').addEventListener('click', ()=>{
     const name = $('#newTeamName').value.trim();
     if(name){ addTeam(name); $('#newTeamName').value=''; }
@@ -864,6 +958,7 @@
   $('#btnEnd').addEventListener('click', ()=>endRound(false));
   $('#btnPass').addEventListener('click', onPass);
   $('#btnCorrect').addEventListener('click', onCorrect);
+  $('#btnUndo').addEventListener('click', undoLastAction);
   document.addEventListener('keydown', (e)=>{
     if(e.code==='Space'){ e.preventDefault(); if(round.running){ onPass(); } }
     else if(e.code==='Enter'){ if(round.running){ onCorrect(); } }
@@ -895,6 +990,10 @@
     state.settings.autoScoreOnCorrect = e.target.checked; saveState();
   });
 
+  $('#toggleDarkMode').addEventListener('change', (e)=>{
+    state.settings.darkMode = e.target.checked; saveState(); applyTheme();
+  });
+
   $('#btnResetCats').addEventListener('click', ()=>{
     if(confirm('사용된 카테고리 표시를 모두 해제할까요?')) resetUsedCategories();
   });
@@ -916,6 +1015,8 @@
   $('#btnCatsCancel').addEventListener('click', ()=>$('#dlgCats').close());
   $('#btnCatsExport').addEventListener('click', exportCats);
   $('#btnCatsImport').addEventListener('click', importCats);
+  $('#btnTeamsExport').addEventListener('click', exportTeams);
+  $('#btnTeamsImport').addEventListener('click', importTeams);
 
   $('#btnSummaryOk').addEventListener('click', ()=>$('#dlgSummary').close());
 
@@ -926,9 +1027,11 @@
     $('#toggleHideUsed').checked = state.settings.hideUsedCategories;
     $('#toggleBlockOnEnd').checked = state.settings.blockUsedCategoryOnEnd;
     $('#toggleAutoScore').checked = state.settings.autoScoreOnCorrect;
+    $('#toggleDarkMode').checked = state.settings.darkMode;
     roundSecondsInput.value = String(state.settings.roundSeconds);
     timeRemain.textContent = String(state.settings.roundSeconds);
     updateStartBtnState();
+    applyTheme();
   }
 
   loadState();

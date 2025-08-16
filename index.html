@@ -19,6 +19,7 @@
 <main>
   <section id="catScreen" class="screen panel">
     <h2>카테고리</h2>
+    <input type="text" id="catSearch" placeholder="카테고리 검색" />
     <div id="catList" class="categories"></div>
     <div class="row">
       <button id="btnResetScores" class="ghost" title="모든 팀 점수를 초기화">점수 리셋</button>
@@ -48,6 +49,7 @@
     <div class="actions-grid">
       <button id="btnPass" class="warn" disabled>패스 (Space)</button>
       <button id="btnCorrect" class="success" disabled>정답 (Enter)</button>
+      <button id="btnUndo" class="ghost" disabled>되돌리기</button>
     </div>
     <div class="mutetext">
       단축키: <span class="kbd">Space</span>=패스, <span class="kbd">Enter</span>=정답, <span class="kbd">S</span>=시작/일시정지, <span class="kbd">F</span>=전체화면.
@@ -65,6 +67,11 @@
       <label title="정답 버튼을 누르면 해당 팀 점수를 자동으로 +1 합니다.">
         <input type="checkbox" id="toggleAutoScore" checked> 정답 시 자동 가점(+1)
       </label>
+      <div class="row">
+        <span class="spacer"></span>
+        <button id="btnTeamsExport" class="ghost">내보내기</button>
+        <button id="btnTeamsImport" class="ghost">가져오기</button>
+      </div>
     </div>
 
     <div class="section">
@@ -91,6 +98,7 @@
 
     <div class="section">
       <h3>기타</h3>
+      <label><input type="checkbox" id="toggleDarkMode"> 다크 모드</label>
       <button id="btnFull" class="ghost" title="전체화면 전환">전체화면</button>
       <button id="btnHardReset" class="danger" title="모든 데이터 초기화">전체 초기화</button>
     </div>
