@@ -596,6 +596,7 @@
     pass:0,
     correctWords:[],
     passedWords:[],
+    lastWarnSec:null
     actionStack:[]
   };
 
@@ -635,6 +636,7 @@
     round.correct = 0; round.pass = 0;
     round.correctWords = [];
     round.passedWords = [];
+    round.lastWarnSec = null;
     round.actionStack = [];
     updateUndoState();
 
@@ -672,9 +674,14 @@
     if(!round.running || round.paused) return;
     const now = Date.now();
     round.leftMs = Math.max(0, round.endAt - now);
-    timeRemain.textContent = formatTime(round.leftMs);
+    const secsLeft = Math.max(0, Math.ceil(round.leftMs/1000));
+    timeRemain.textContent = String(secsLeft);
     const ratio = round.leftMs / (state.settings.roundSeconds*1000);
     $('#timerBar').style.background = `linear-gradient(90deg, rgba(96,211,148,.18) ${100-(ratio*100)}%, #12151d ${100-(ratio*100)}%)`;
+    if(secsLeft<=10 && secsLeft!==round.lastWarnSec){
+      round.lastWarnSec = secsLeft;
+      beep(600);
+    }
     if(round.leftMs<=0){
       endRound(true);
     }
@@ -764,6 +771,7 @@
     const idx = round.wordIndex;
     round.pass++;
     if(w) round.passedWords.push(w);
+    beep(440);
     round.actionStack.push({type:'pass', word:w, index:idx});
     updateUndoState();
     afterAnswer();
@@ -775,22 +783,29 @@
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
+    beep(1200);
     round.actionStack.push({type:'correct', word:w, index:idx});
     updateUndoState();
     afterAnswer();
   }
 
   // 단순 비프음 생성
-  function beep(){
+  function beep(opt){
     try{
+      if(typeof opt==='string'){
+        new Audio(opt).play();
+        return;
+      }
+      const freq = typeof opt==='number'?opt:(opt&&opt.freq)||880;
+      const duration = (opt&&opt.duration)||0.45;
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
-      o.type='sine'; o.frequency.value=880;
+      o.type='sine'; o.frequency.value=freq;
       g.gain.setValueAtTime(0.001, ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
-      o.start(); o.stop(ctx.currentTime+0.45);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration-0.05);
+      o.start(); o.stop(ctx.currentTime+duration);
     }catch(e){}
   }
 
