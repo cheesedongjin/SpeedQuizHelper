@@ -549,6 +549,7 @@
   const btnEnd = $('#btnEnd');
   const btnPass = $('#btnPass');
   const btnCorrect = $('#btnCorrect');
+  const btnUndo = $('#btnUndo');
   const btnNextTeam = $('#btnNextTeam');
   const roundSecondsInput = $('#roundSeconds');
 
@@ -580,7 +581,8 @@
     correct:0,
     pass:0,
     correctWords:[],
-    passedWords:[]
+    passedWords:[],
+    actionStack:[]
   };
 
   function updateStartBtnState(){
@@ -619,6 +621,8 @@
     round.correct = 0; round.pass = 0;
     round.correctWords = [];
     round.passedWords = [];
+    round.actionStack = [];
+    updateUndoState();
 
     const secs = clampSeconds(Number(roundSecondsInput.value)||60);
     state.settings.roundSeconds = secs;
@@ -633,6 +637,7 @@
     btnEnd.disabled = false;
     btnPass.disabled = false;
     btnCorrect.disabled = false;
+    btnUndo.disabled = true;
     btnNextTeam.disabled = true;
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
@@ -681,6 +686,8 @@
     clearInterval(round.timerId); round.timerId=null;
     round.running=false; round.paused=false;
     btnStart.disabled=false; btnPause.disabled=true; btnEnd.disabled=true; btnPass.disabled=true; btnCorrect.disabled=true; btnNextTeam.disabled=false;
+    btnUndo.disabled = true;
+    round.actionStack = [];
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
     $('#timerBar').style.color='';
@@ -714,19 +721,48 @@
     }
   }
 
+  function updateUndoState(){
+    btnUndo.disabled = round.actionStack.length===0;
+  }
+
+  function undoLastAction(){
+    if(round.actionStack.length===0) return;
+    const act = round.actionStack.pop();
+    if(act.type==='pass'){
+      if(round.pass>0) round.pass--;
+      if(round.passedWords.length>0) round.passedWords.pop();
+    }else if(act.type==='correct'){
+      if(round.correct>0) round.correct--;
+      if(round.correctWords.length>0) round.correctWords.pop();
+      if(state.activeTeamId && state.settings.autoScoreOnCorrect){
+        incScore(state.activeTeamId, -1);
+      }
+    }
+    round.wordIndex = act.index;
+    bigWord.textContent = act.word;
+    fitBigWord();
+    updateUndoState();
+  }
+
   function onPass(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
+    const idx = round.wordIndex;
     round.pass++;
     if(w) round.passedWords.push(w);
+    round.actionStack.push({type:'pass', word:w, index:idx});
+    updateUndoState();
     afterAnswer();
   }
   function onCorrect(){
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
+    const idx = round.wordIndex;
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
+    round.actionStack.push({type:'correct', word:w, index:idx});
+    updateUndoState();
     afterAnswer();
   }
 
@@ -849,6 +885,7 @@
   $('#btnEnd').addEventListener('click', ()=>endRound(false));
   $('#btnPass').addEventListener('click', onPass);
   $('#btnCorrect').addEventListener('click', onCorrect);
+  $('#btnUndo').addEventListener('click', undoLastAction);
   document.addEventListener('keydown', (e)=>{
     if(e.code==='Space'){ e.preventDefault(); if(round.running){ onPass(); } }
     else if(e.code==='Enter'){ if(round.running){ onCorrect(); } }
