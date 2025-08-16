@@ -260,7 +260,7 @@ main {
   border: 1px dashed var(--border);
   border-radius: 16px;
   padding: 16px;
-  height: 120px; /* keep container fixed regardless of word font size */
+  min-height: 120px; /* ensure space but allow multi-line words */
 }
 
 .word .bigword {
@@ -269,7 +269,7 @@ main {
   letter-spacing: 1px;
   line-height: 1.15;
   word-break: keep-all;
-  white-space: nowrap;
+  white-space: normal; /* allow wrapping within the container */
 }
 
 .actions-grid {
