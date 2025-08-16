@@ -397,6 +397,15 @@
     renderCategories();
   }
 
+  function resetScores(){
+    state.teams.forEach(t=>{
+      t.score = 0;
+      t.rounds = 0;
+    });
+    saveState();
+    renderTeams();
+  }
+
   // ----- 팀 & 점수 -----
   const board = $('#scoreboard');
   function addTeam(name){
@@ -806,6 +815,10 @@
 
   $('#btnResetCats').addEventListener('click', ()=>{
     if(confirm('사용된 카테고리 표시를 모두 해제할까요?')) resetUsedCategories();
+  });
+
+  $('#btnResetScores').addEventListener('click', ()=>{
+    if(confirm('모든 팀 점수를 초기화할까요?')) resetScores();
   });
 
   $('#btnHardReset').addEventListener('click', ()=>{
