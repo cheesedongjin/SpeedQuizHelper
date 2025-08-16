@@ -414,6 +414,14 @@
     return arr;
   }
 
+  function debounce(fn, delay=200){
+    let t;
+    return (...args)=>{
+      clearTimeout(t);
+      t = setTimeout(()=>fn(...args), delay);
+    };
+  }
+
   // ----- 화면 전환 -----
   const screens = {
     catScreen: $('#catScreen'),
@@ -429,13 +437,16 @@
   tabButtons.forEach(btn=>btn.addEventListener('click', ()=>showScreen(btn.dataset.screen)));
 
   // ----- 렌더링: 카테고리 -----
+  const catSearch = $('#catSearch');
   const catList = $('#catList');
   let selectedCategoryId = null;
 
   function renderCategories(){
     catList.innerHTML = '';
     const hideUsed = state.settings.hideUsedCategories;
-    for(const c of state.categories){
+    const keyword = catSearch.value.trim().toLowerCase();
+    const cats = state.categories.filter(c => !keyword || c.name.toLowerCase().includes(keyword));
+    for(const c of cats){
       const used = state.usedCategoryIds.includes(c.id);
       if(hideUsed && used) continue;
       const row = el('div',{class:'cat'+(used?' locked':''), dataset:{cid:c.id}});
@@ -835,6 +846,7 @@
   }
 
   // ----- 이벤트 바인딩 -----
+  catSearch.addEventListener('input', debounce(renderCategories, 200));
   $('#btnAddTeam').addEventListener('click', ()=>{
     const name = $('#newTeamName').value.trim();
     if(name){ addTeam(name); $('#newTeamName').value=''; }
