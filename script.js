@@ -385,7 +385,7 @@
     activeTeamId: string|null,
     categories: {id:string,name:string,words:string[]}[],
     usedCategoryIds: string[],
-    settings: { roundSeconds:number, blockUsedCategoryOnEnd:boolean, hideUsedCategories:boolean, autoScoreOnCorrect:boolean },
+    settings: { roundSeconds:number, blockUsedCategoryOnEnd:boolean, hideUsedCategories:boolean, autoScoreOnCorrect:boolean, darkMode:boolean, comboBonus:boolean },
     version:number
   }} */
   let state;
@@ -406,6 +406,9 @@
         if(state.settings && typeof state.settings.darkMode === 'undefined'){
           state.settings.darkMode = false;
         }
+        if(state.settings && typeof state.settings.comboBonus === 'undefined'){
+          state.settings.comboBonus = false;
+        }
         // ensure rounds property exists for teams loaded from older state
         state.teams?.forEach(t=>{ if(typeof t.rounds !== 'number') t.rounds = 0; });
         return;
@@ -416,8 +419,8 @@
       activeTeamId: null,
       categories: DEFAULT_CATEGORIES.map(c=>({id:uid('cat'), name:c.name, words:[...c.words]})),
       usedCategoryIds: [],
-      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false },
-      version: 2
+      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false, comboBonus:false },
+      version: 3
     };
     saveState();
   }
@@ -640,7 +643,8 @@
     correctWords:[],
     passedWords:[],
     lastWarnSec:null,
-    actionStack:[]
+    actionStack:[],
+    correctStreak:0
   };
 
   function updateStartBtnState(){
@@ -675,7 +679,8 @@
     const cat = state.categories.find(c=>c.id===round.categoryId);
     round.words = shuffle([...cat.words]);
     round.wordIndex = -1;
-    round.correct = 0; round.pass = 0;
+    pickNextWord();
+    round.correct = 0; round.pass = 0; round.correctStreak = 0;
     round.correctWords = [];
     round.passedWords = [];
     round.lastWarnSec = null;
@@ -826,12 +831,15 @@
     if(act.type==='pass'){
       if(round.pass>0) round.pass--;
       if(round.passedWords.length>0) round.passedWords.pop();
+      round.correctStreak = act.prevStreak || 0;
     }else if(act.type==='correct'){
       if(round.correct>0) round.correct--;
       if(round.correctWords.length>0) round.correctWords.pop();
       if(state.activeTeamId && state.settings.autoScoreOnCorrect){
         incScore(state.activeTeamId, -1);
+        if(act.bonus) incScore(state.activeTeamId, -2);
       }
+      round.correctStreak = act.prevStreak || 0;
     }
     round.wordIndex = act.index;
     bigWord.textContent = act.word;
@@ -843,10 +851,12 @@
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
     const idx = round.wordIndex;
+    const prevStreak = round.correctStreak;
     round.pass++;
     if(w) round.passedWords.push(w);
+    round.correctStreak = 0;
     beep({freq:440, vibrate:50});
-    round.actionStack.push({type:'pass', word:w, index:idx});
+    round.actionStack.push({type:'pass', word:w, index:idx, prevStreak});
     updateUndoState();
     afterAnswer();
   }
@@ -854,11 +864,20 @@
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
     const idx = round.wordIndex;
+    const prevStreak = round.correctStreak;
     round.correct++;
+    round.correctStreak++;
     if(w) round.correctWords.push(w);
-    if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
+    let bonus = false;
+    if(state.activeTeamId && state.settings.autoScoreOnCorrect){
+      incScore(state.activeTeamId, +1);
+      if(state.settings.comboBonus && round.correctStreak % 3 === 0){
+        incScore(state.activeTeamId, +2);
+        bonus = true;
+      }
+    }
     beep({freq:1200, vibrate:[70,40,70]});
-    round.actionStack.push({type:'correct', word:w, index:idx});
+    round.actionStack.push({type:'correct', word:w, index:idx, prevStreak, bonus});
     updateUndoState();
     afterAnswer();
   }
@@ -1068,6 +1087,9 @@
   $('#toggleAutoScore').addEventListener('change', (e)=>{
     state.settings.autoScoreOnCorrect = e.target.checked; saveState();
   });
+  $('#toggleComboBonus').addEventListener('change', (e)=>{
+    state.settings.comboBonus = e.target.checked; saveState();
+  });
 
   $('#toggleDarkMode').addEventListener('change', (e)=>{
     state.settings.darkMode = e.target.checked; saveState(); applyTheme();
@@ -1106,6 +1128,7 @@
     $('#toggleHideUsed').checked = state.settings.hideUsedCategories;
     $('#toggleBlockOnEnd').checked = state.settings.blockUsedCategoryOnEnd;
     $('#toggleAutoScore').checked = state.settings.autoScoreOnCorrect;
+    $('#toggleComboBonus').checked = state.settings.comboBonus;
     $('#toggleDarkMode').checked = state.settings.darkMode;
     roundSecondsInput.value = String(state.settings.roundSeconds);
     timeRemain.textContent = String(state.settings.roundSeconds);
