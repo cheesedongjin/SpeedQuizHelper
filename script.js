@@ -677,7 +677,17 @@
     const secsLeft = Math.max(0, Math.ceil(round.leftMs/1000));
     timeRemain.textContent = String(secsLeft);
     const ratio = round.leftMs / (state.settings.roundSeconds*1000);
-    $('#timerBar').style.background = `linear-gradient(90deg, rgba(96,211,148,.18) ${100-(ratio*100)}%, #12151d ${100-(ratio*100)}%)`;
+    let barColor = 'rgba(96,211,148,.18)';
+    let textColor = '';
+    if(ratio <= 0.2){
+      barColor = 'rgba(220,53,69,.18)';
+      textColor = '#dc3545';
+    }else if(ratio <= 0.5){
+      barColor = 'rgba(255,193,7,.18)';
+      textColor = '#ffc107';
+    }
+    $('#timerBar').style.background = `linear-gradient(90deg, ${barColor} ${100-(ratio*100)}%, #12151d ${100-(ratio*100)}%)`;
+    $('#timerBar').style.color = textColor;
     if(secsLeft<=10 && secsLeft!==round.lastWarnSec){
       round.lastWarnSec = secsLeft;
       beep(600);
