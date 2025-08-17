@@ -473,7 +473,7 @@
       const row = el('div',{class:'cat'+(used?' locked':''), dataset:{cid:c.id}});
       const radio = el('input',{type:'radio', name:'catpick', class:'radio', disabled:used?'':null});
       radio.checked = (selectedCategoryId===c.id) && !used;
-      radio.addEventListener('change', ()=>{ selectedCategoryId = c.id; updateStartBtnState(); });
+      radio.addEventListener('change', ()=>{ selectedCategoryId = c.id; updateStartBtnState(); updateCurrentCategory(); });
       const icon = c.icon;
       const title = el('div',{style:'font-weight:800'}, icon ? el('span',{class:'cat-icon'}, icon) : null, c.name);
       const name = el('div',{}, title, el('div',{class:'mutetext small'}, `${c.words.length} 제시어`));
@@ -486,6 +486,7 @@
         radio.checked = true;
         selectedCategoryId = c.id;
         updateStartBtnState();
+        updateCurrentCategory();
         showScreen('gameScreen');
       });
       catList.appendChild(row);
@@ -577,6 +578,7 @@
 
   // ----- 라운드 진행 -----
   const bigWord = $('#bigWord');
+  const currentCategoryEl = $('#currentCategory');
   const timeRemain = $('#timeRemain');
   const btnStart = $('#btnStart');
   const btnPause = $('#btnPause');
@@ -629,6 +631,12 @@
     btnStart.disabled = !(hasTeam && hasCat && !round.running);
   }
 
+  function updateCurrentCategory(){
+    const id = round.running ? round.categoryId : selectedCategoryId;
+    const name = state.categories.find(c=>c.id===id)?.name || '';
+    currentCategoryEl.textContent = name ? `카테고리: ${name}` : '';
+  }
+
   function pickNextWord(){
     if(round.words.length===0){
       bigWord.textContent = '제시어가 없습니다 (카테고리 수정 필요)';
@@ -653,6 +661,7 @@
     showScreen('gameScreen');
     round.categoryId = selectedCategoryId;
     const cat = state.categories.find(c=>c.id===round.categoryId);
+    updateCurrentCategory();
     round.words = shuffle([...cat.words]);
     round.wordIndex = -1;
     pickNextWord();
@@ -1135,6 +1144,7 @@
     roundSecondsInput.value = String(state.settings.roundSeconds);
     timeRemain.textContent = String(state.settings.roundSeconds);
     updateStartBtnState();
+    updateCurrentCategory();
     applyTheme();
   }
 

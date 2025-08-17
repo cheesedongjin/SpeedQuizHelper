@@ -254,6 +254,12 @@ main {
   border-radius: 8px;
 }
 
+.current-category {
+  text-align: center;
+  font-weight: 700;
+  margin: 10px 0;
+}
+
 .word {
   flex: none; /* prevent container from expanding/shrinking with font size */
   display: flex;
