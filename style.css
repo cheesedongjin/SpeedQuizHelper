@@ -270,7 +270,8 @@ main {
   border: 1px dashed var(--border);
   border-radius: 16px;
   padding: 16px;
-  min-height: 120px; /* ensure space but allow multi-line words */
+  height: 150px; /* keep area fixed so buttons don't move */
+  overflow: hidden;
 }
 
 .word .bigword {

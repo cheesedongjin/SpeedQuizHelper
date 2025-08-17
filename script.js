@@ -595,10 +595,12 @@
     bigWord.style.fontSize = '';
     const container = bigWord.parentElement;
     const style = getComputedStyle(container);
-    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-    const maxWidth = container.clientWidth - padding;
+    const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    const maxWidth = container.clientWidth - paddingX;
+    const maxHeight = container.clientHeight - paddingY;
     let size = parseFloat(getComputedStyle(bigWord).fontSize);
-    while(bigWord.scrollWidth > maxWidth && size > 16){
+    while((bigWord.scrollWidth > maxWidth || bigWord.scrollHeight > maxHeight) && size > 16){
       size -= 2;
       bigWord.style.fontSize = size + 'px';
     }
