@@ -339,6 +339,47 @@
     ]},
   ];
 
+  const CATEGORY_ICONS = {
+    '동물': '🐯',
+    '음식': '🍔',
+    '나라': '🌍',
+    '직업': '💼',
+    '스포츠': '⚽',
+    '과일': '🍎',
+    '채소·식재료': '🥕',
+    '가전·전자제품': '📱',
+    '탈것·교통수단': '🚗',
+    '학문·교과': '📚',
+    '한국 도시·지명': '🏙️',
+    '일상 물건': '📦',
+    '1~3세대 아이돌': '🎤',
+    '4~5세대 아이돌': '🎤',
+    '세계 도시': '🌆',
+    '세계 랜드마크': '🗽',
+    '한국 음식': '🍚',
+    '세계 음식': '🍱',
+    '드라마 - 1980~1990년대': '📺',
+    '드라마 - 2000년대': '📺',
+    '드라마 - 2010년대': '📺',
+    '드라마 - 2020년대': '📺',
+    '영화 - 디즈니/픽사': '🎬',
+    '영화 - 액션': '💥',
+    '영화 - 스릴러/범죄': '🕵️',
+    '영화 - 로맨스/드라마': '💖',
+    '영화 - SF/판타지': '🛸',
+    '패션·의류': '👗',
+    '음악 장르·악기': '🎵',
+    '과학·기술 용어': '🔬',
+    '취미·여가': '🎲',
+    '자연·환경': '🌳',
+    '명절·기념일': '🎉',
+    '마인크래프트 블록': '🧱',
+  };
+
+  function getCategoryIcon(name){
+    return CATEGORY_ICONS[name] || '';
+  }
+
   /** @type {{
     teams: {id:string,name:string,score:number,rounds:number}[],
     activeTeamId: string|null,
@@ -456,7 +497,9 @@
       const radio = el('input',{type:'radio', name:'catpick', class:'radio', disabled:used?'':null});
       radio.checked = (selectedCategoryId===c.id) && !used;
       radio.addEventListener('change', ()=>{ selectedCategoryId = c.id; updateStartBtnState(); });
-      const name = el('div',{}, el('div',{style:'font-weight:800'}, c.name), el('div',{class:'mutetext small'}, `${c.words.length} 제시어`));
+      const icon = getCategoryIcon(c.name);
+      const title = el('div',{style:'font-weight:800'}, icon ? el('span',{class:'cat-icon'}, icon) : null, c.name);
+      const name = el('div',{}, title, el('div',{class:'mutetext small'}, `${c.words.length} 제시어`));
       const right = el('div',{}, used? el('span',{class:'badge'},'사용됨') : el('span',{class:'badge'},'사용 가능'));
       row.appendChild(radio);
       row.appendChild(name);

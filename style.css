@@ -185,6 +185,10 @@ main {
 
 .cat.locked { opacity: .5; }
 
+.cat-icon {
+  margin-right: 4px;
+}
+
 .badge {
   font-size: 12px;
   padding: 2px 8px;
