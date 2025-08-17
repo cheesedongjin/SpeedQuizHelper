@@ -783,8 +783,6 @@
     if(state.settings.blockUsedCategoryOnEnd && round.categoryId){
       if(!state.usedCategoryIds.includes(round.categoryId)){
         state.usedCategoryIds.push(round.categoryId);
-        saveState();
-        renderCategories();
       }
     }
     // increment round count for current team
@@ -795,6 +793,10 @@
     saveState();
     showSummary(timeup);
     nextTeam();
+    selectedCategoryId = null;
+    renderCategories();
+    updateStartBtnState();
+    updateCurrentCategory();
     showScreen('catScreen');
   }
 
