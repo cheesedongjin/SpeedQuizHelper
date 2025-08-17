@@ -675,7 +675,6 @@
     const cat = state.categories.find(c=>c.id===round.categoryId);
     round.words = shuffle([...cat.words]);
     round.wordIndex = -1;
-    pickNextWord();
     round.correct = 0; round.pass = 0;
     round.correctWords = [];
     round.passedWords = [];
@@ -687,17 +686,40 @@
     state.settings.roundSeconds = secs;
     saveState();
 
+    btnStart.disabled = true;
+    btnPause.disabled = true;
+    btnEnd.disabled = true;
+    btnPass.disabled = true;
+    btnCorrect.disabled = true;
+    btnUndo.disabled = true;
+    btnNextTeam.disabled = true;
+
+    let count = 3;
+    const countdown = ()=>{
+      if(count>0){
+        bigWord.textContent = String(count);
+        fitBigWord();
+        beep(600);
+        count--;
+        setTimeout(countdown, 1000);
+      }else{
+        beginRound(secs);
+      }
+    };
+    countdown();
+  }
+
+  function beginRound(secs){
+    pickNextWord();
     round.running = true; round.paused = false;
     round.startAt = Date.now();
     round.endAt = round.startAt + secs*1000;
     round.leftMs = secs*1000;
-    btnStart.disabled = true;
     btnPause.disabled = false;
     btnEnd.disabled = false;
     btnPass.disabled = false;
     btnCorrect.disabled = false;
     btnUndo.disabled = true;
-    btnNextTeam.disabled = true;
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
