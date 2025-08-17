@@ -1117,6 +1117,7 @@
   });
   togglePassPenalty.addEventListener('change', (e)=>{
     state.settings.passPenalty = e.target.checked; saveState();
+  });
   $('#toggleComboBonus').addEventListener('change', (e)=>{
     state.settings.comboBonus = e.target.checked; saveState();
   });
