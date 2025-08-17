@@ -712,6 +712,8 @@
     timeRemain.textContent = String(state.settings.roundSeconds);
     $('#timerBar').style.background='';
     $('#timerBar').style.color='';
+    bigWord.textContent = '라운드를 시작하세요';
+    fitBigWord();
 
     if(timeup){
       beep();
