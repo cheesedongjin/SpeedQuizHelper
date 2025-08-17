@@ -339,12 +339,53 @@
     ]},
   ];
 
+  const CATEGORY_ICONS = {
+    '동물': '🐯',
+    '음식': '🍔',
+    '나라': '🌍',
+    '직업': '💼',
+    '스포츠': '⚽',
+    '과일': '🍎',
+    '채소·식재료': '🥕',
+    '가전·전자제품': '📱',
+    '탈것·교통수단': '🚗',
+    '학문·교과': '📚',
+    '한국 도시·지명': '🏙️',
+    '일상 물건': '📦',
+    '1~3세대 아이돌': '🎤',
+    '4~5세대 아이돌': '🎤',
+    '세계 도시': '🌆',
+    '세계 랜드마크': '🗽',
+    '한국 음식': '🍚',
+    '세계 음식': '🍱',
+    '드라마 - 1980~1990년대': '📺',
+    '드라마 - 2000년대': '📺',
+    '드라마 - 2010년대': '📺',
+    '드라마 - 2020년대': '📺',
+    '영화 - 디즈니/픽사': '🎬',
+    '영화 - 액션': '💥',
+    '영화 - 스릴러/범죄': '🕵️',
+    '영화 - 로맨스/드라마': '💖',
+    '영화 - SF/판타지': '🛸',
+    '패션·의류': '👗',
+    '음악 장르·악기': '🎵',
+    '과학·기술 용어': '🔬',
+    '취미·여가': '🎲',
+    '자연·환경': '🌳',
+    '명절·기념일': '🎉',
+    '마인크래프트 블록': '🧱',
+  };
+
+  function getCategoryIcon(name){
+    return CATEGORY_ICONS[name] || '';
+  }
+
   /** @type {{
     teams: {id:string,name:string,score:number,rounds:number}[],
     activeTeamId: string|null,
     categories: {id:string,name:string,words:string[]}[],
     usedCategoryIds: string[],
-    settings: { roundSeconds:number, blockUsedCategoryOnEnd:boolean, hideUsedCategories:boolean, autoScoreOnCorrect:boolean },
+    settings: { roundSeconds:number, blockUsedCategoryOnEnd:boolean, hideUsedCategories:boolean, autoScoreOnCorrect:boolean, darkMode:boolean, comboBonus:boolean },
     version:number
   }} */
   let state;
@@ -371,6 +412,9 @@
         if(state.settings && typeof state.settings.passPenalty === 'undefined'){
           state.settings.passPenalty = false;
         }
+        if(state.settings && typeof state.settings.comboBonus === 'undefined'){
+          state.settings.comboBonus = false;
+        }
         // ensure rounds property exists for teams loaded from older state
         state.teams?.forEach(t=>{ if(typeof t.rounds !== 'number') t.rounds = 0; });
         return;
@@ -381,8 +425,8 @@
       activeTeamId: null,
       categories: DEFAULT_CATEGORIES.map(c=>({id:uid('cat'), name:c.name, words:[...c.words]})),
       usedCategoryIds: [],
-      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false, passLimit:0, passPenalty:false },
-      version: 2
+      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false, passLimit:0, passPenalty:false, comboBonus:false },
+      version: 3
     };
     saveState();
   }
@@ -462,7 +506,9 @@
       const radio = el('input',{type:'radio', name:'catpick', class:'radio', disabled:used?'':null});
       radio.checked = (selectedCategoryId===c.id) && !used;
       radio.addEventListener('change', ()=>{ selectedCategoryId = c.id; updateStartBtnState(); });
-      const name = el('div',{}, el('div',{style:'font-weight:800'}, c.name), el('div',{class:'mutetext small'}, `${c.words.length} 제시어`));
+      const icon = getCategoryIcon(c.name);
+      const title = el('div',{style:'font-weight:800'}, icon ? el('span',{class:'cat-icon'}, icon) : null, c.name);
+      const name = el('div',{}, title, el('div',{class:'mutetext small'}, `${c.words.length} 제시어`));
       const right = el('div',{}, used? el('span',{class:'badge'},'사용됨') : el('span',{class:'badge'},'사용 가능'));
       row.appendChild(radio);
       row.appendChild(name);
@@ -605,7 +651,8 @@
     correctWords:[],
     passedWords:[],
     lastWarnSec:null,
-    actionStack:[]
+    actionStack:[],
+    correctStreak:0
   };
 
   function updateStartBtnState(){
@@ -641,7 +688,7 @@
     round.words = shuffle([...cat.words]);
     round.wordIndex = -1;
     pickNextWord();
-    round.correct = 0; round.pass = 0;
+    round.correct = 0; round.pass = 0; round.correctStreak = 0;
     round.correctWords = [];
     round.passedWords = [];
     round.lastWarnSec = null;
@@ -652,17 +699,40 @@
     state.settings.roundSeconds = secs;
     saveState();
 
+    btnStart.disabled = true;
+    btnPause.disabled = true;
+    btnEnd.disabled = true;
+    btnPass.disabled = true;
+    btnCorrect.disabled = true;
+    btnUndo.disabled = true;
+    btnNextTeam.disabled = true;
+
+    let count = 3;
+    const countdown = ()=>{
+      if(count>0){
+        bigWord.textContent = String(count);
+        fitBigWord();
+        beep(600);
+        count--;
+        setTimeout(countdown, 1000);
+      }else{
+        beginRound(secs);
+      }
+    };
+    countdown();
+  }
+
+  function beginRound(secs){
+    pickNextWord();
     round.running = true; round.paused = false;
     round.startAt = Date.now();
     round.endAt = round.startAt + secs*1000;
     round.leftMs = secs*1000;
-    btnStart.disabled = true;
     btnPause.disabled = false;
     btnEnd.disabled = false;
     btnPass.disabled = false;
     btnCorrect.disabled = false;
     btnUndo.disabled = true;
-    btnNextTeam.disabled = true;
     tickTimer();
     round.timerId = setInterval(tickTimer, 100);
   }
@@ -685,7 +755,17 @@
     const secsLeft = Math.max(0, Math.ceil(round.leftMs/1000));
     timeRemain.textContent = String(secsLeft);
     const ratio = round.leftMs / (state.settings.roundSeconds*1000);
-    $('#timerBar').style.background = `linear-gradient(90deg, rgba(96,211,148,.18) ${100-(ratio*100)}%, #12151d ${100-(ratio*100)}%)`;
+    let barColor = 'rgba(96,211,148,.18)';
+    let textColor = '';
+    if(ratio <= 0.2){
+      barColor = 'rgba(220,53,69,.18)';
+      textColor = '#dc3545';
+    }else if(ratio <= 0.5){
+      barColor = 'rgba(255,193,7,.18)';
+      textColor = '#ffc107';
+    }
+    $('#timerBar').style.background = `linear-gradient(90deg, ${barColor} ${100-(ratio*100)}%, #12151d ${100-(ratio*100)}%)`;
+    $('#timerBar').style.color = textColor;
     if(secsLeft<=10 && secsLeft!==round.lastWarnSec){
       round.lastWarnSec = secsLeft;
       beep(600);
@@ -722,10 +802,7 @@
     $('#timerBar').style.color='';
     bigWord.textContent = '라운드를 시작하세요';
     fitBigWord();
-
-    if(timeup){
-      beep();
-    }
+    beep({freq:300, duration:0.7, vibrate:[200,100,200]});
     if(state.settings.blockUsedCategoryOnEnd && round.categoryId){
       if(!state.usedCategoryIds.includes(round.categoryId)){
         state.usedCategoryIds.push(round.categoryId);
@@ -764,12 +841,15 @@
       if(state.activeTeamId && state.settings.passPenalty){ incScore(state.activeTeamId, +1); }
       if(round.passedWords.length>0) round.passedWords.pop();
       if(state.settings.passLimit>0 && round.pass < state.settings.passLimit){ btnPass.disabled = false; }
+      round.correctStreak = act.prevStreak || 0;
     }else if(act.type==='correct'){
       if(round.correct>0) round.correct--;
       if(round.correctWords.length>0) round.correctWords.pop();
       if(state.activeTeamId && state.settings.autoScoreOnCorrect){
         incScore(state.activeTeamId, -1);
+        if(act.bonus) incScore(state.activeTeamId, -2);
       }
+      round.correctStreak = act.prevStreak || 0;
     }
     round.wordIndex = act.index;
     bigWord.textContent = act.word;
@@ -785,11 +865,13 @@
     }
     const w = round.words[round.wordIndex];
     const idx = round.wordIndex;
+    const prevStreak = round.correctStreak;
     round.pass++;
     if(state.activeTeamId && state.settings.passPenalty){ incScore(state.activeTeamId, -1); }
     if(w) round.passedWords.push(w);
-    beep(440);
-    round.actionStack.push({type:'pass', word:w, index:idx});
+    round.correctStreak = 0;
+    beep({freq:440, vibrate:50});
+    round.actionStack.push({type:'pass', word:w, index:idx, prevStreak});
     updateUndoState();
     if(state.settings.passLimit>0 && round.pass >= state.settings.passLimit){ btnPass.disabled = true; }
     afterAnswer();
@@ -798,11 +880,20 @@
     if(!round.running || round.paused) return;
     const w = round.words[round.wordIndex];
     const idx = round.wordIndex;
+    const prevStreak = round.correctStreak;
     round.correct++;
+    round.correctStreak++;
     if(w) round.correctWords.push(w);
-    if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
-    beep(1200);
-    round.actionStack.push({type:'correct', word:w, index:idx});
+    let bonus = false;
+    if(state.activeTeamId && state.settings.autoScoreOnCorrect){
+      incScore(state.activeTeamId, +1);
+      if(state.settings.comboBonus && round.correctStreak % 3 === 0){
+        incScore(state.activeTeamId, +2);
+        bonus = true;
+      }
+    }
+    beep({freq:1200, vibrate:[70,40,70]});
+    round.actionStack.push({type:'correct', word:w, index:idx, prevStreak, bonus});
     updateUndoState();
     afterAnswer();
   }
@@ -810,20 +901,25 @@
   // 단순 비프음 생성
   function beep(opt){
     try{
+      let vibratePat;
       if(typeof opt==='string'){
         new Audio(opt).play();
-        return;
+      }else{
+        const freq = typeof opt==='number'?opt:(opt&&opt.freq)||880;
+        const duration = (opt&&opt.duration)||0.45;
+        vibratePat = opt && opt.vibrate;
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type='sine'; o.frequency.value=freq;
+        g.gain.setValueAtTime(0.001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration-0.05);
+        o.start(); o.stop(ctx.currentTime+duration);
       }
-      const freq = typeof opt==='number'?opt:(opt&&opt.freq)||880;
-      const duration = (opt&&opt.duration)||0.45;
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type='sine'; o.frequency.value=freq;
-      g.gain.setValueAtTime(0.001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration-0.05);
-      o.start(); o.stop(ctx.currentTime+duration);
+      if(vibratePat && navigator.vibrate){
+        navigator.vibrate(vibratePat);
+      }
     }catch(e){}
   }
 
@@ -1021,6 +1117,8 @@
   });
   togglePassPenalty.addEventListener('change', (e)=>{
     state.settings.passPenalty = e.target.checked; saveState();
+  $('#toggleComboBonus').addEventListener('change', (e)=>{
+    state.settings.comboBonus = e.target.checked; saveState();
   });
 
   $('#toggleDarkMode').addEventListener('change', (e)=>{
@@ -1060,6 +1158,7 @@
     $('#toggleHideUsed').checked = state.settings.hideUsedCategories;
     $('#toggleBlockOnEnd').checked = state.settings.blockUsedCategoryOnEnd;
     $('#toggleAutoScore').checked = state.settings.autoScoreOnCorrect;
+    $('#toggleComboBonus').checked = state.settings.comboBonus;
     $('#toggleDarkMode').checked = state.settings.darkMode;
     passLimitInput.value = String(state.settings.passLimit||0);
     togglePassPenalty.checked = state.settings.passPenalty;
