@@ -91,6 +91,15 @@
     </div>
 
     <div class="section">
+      <h3>패스</h3>
+      <div class="row" style="gap:10px; align-items:center;">
+        <label for="passLimit">패스 제한(회, 0=무제한)</label>
+        <input type="number" id="passLimit" min="0" step="1" value="0" style="width:120px">
+      </div>
+      <label><input type="checkbox" id="togglePassPenalty"> 패스 시 자동 감점(-1)</label>
+    </div>
+
+    <div class="section">
       <h3>카테고리</h3>
       <label><input type="checkbox" id="toggleHideUsed"> 사용된 카테고리 숨기기</label>
       <label><input type="checkbox" id="toggleBlockOnEnd" checked> 라운드 종료 시 선택 카테고리 막기</label>

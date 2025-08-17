@@ -406,6 +406,12 @@
         if(state.settings && typeof state.settings.darkMode === 'undefined'){
           state.settings.darkMode = false;
         }
+        if(state.settings && typeof state.settings.passLimit === 'undefined'){
+          state.settings.passLimit = 0;
+        }
+        if(state.settings && typeof state.settings.passPenalty === 'undefined'){
+          state.settings.passPenalty = false;
+        }
         if(state.settings && typeof state.settings.comboBonus === 'undefined'){
           state.settings.comboBonus = false;
         }
@@ -419,7 +425,7 @@
       activeTeamId: null,
       categories: DEFAULT_CATEGORIES.map(c=>({id:uid('cat'), name:c.name, words:[...c.words]})),
       usedCategoryIds: [],
-      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false, comboBonus:false },
+      settings: { roundSeconds:60, blockUsedCategoryOnEnd:true, hideUsedCategories:false, autoScoreOnCorrect:true, darkMode:false, passLimit:0, passPenalty:false, comboBonus:false },
       version: 3
     };
     saveState();
@@ -612,6 +618,8 @@
   const btnUndo = $('#btnUndo');
   const btnNextTeam = $('#btnNextTeam');
   const roundSecondsInput = $('#roundSeconds');
+  const passLimitInput = $('#passLimit');
+  const togglePassPenalty = $('#togglePassPenalty');
 
   function fitBigWord(){
     bigWord.style.fontSize = '';
@@ -830,7 +838,9 @@
     const act = round.actionStack.pop();
     if(act.type==='pass'){
       if(round.pass>0) round.pass--;
+      if(state.activeTeamId && state.settings.passPenalty){ incScore(state.activeTeamId, +1); }
       if(round.passedWords.length>0) round.passedWords.pop();
+      if(state.settings.passLimit>0 && round.pass < state.settings.passLimit){ btnPass.disabled = false; }
       round.correctStreak = act.prevStreak || 0;
     }else if(act.type==='correct'){
       if(round.correct>0) round.correct--;
@@ -849,15 +859,21 @@
 
   function onPass(){
     if(!round.running || round.paused) return;
+    if(state.settings.passLimit>0 && round.pass >= state.settings.passLimit){
+      beep(200);
+      return;
+    }
     const w = round.words[round.wordIndex];
     const idx = round.wordIndex;
     const prevStreak = round.correctStreak;
     round.pass++;
+    if(state.activeTeamId && state.settings.passPenalty){ incScore(state.activeTeamId, -1); }
     if(w) round.passedWords.push(w);
     round.correctStreak = 0;
     beep({freq:440, vibrate:50});
     round.actionStack.push({type:'pass', word:w, index:idx, prevStreak});
     updateUndoState();
+    if(state.settings.passLimit>0 && round.pass >= state.settings.passLimit){ btnPass.disabled = true; }
     afterAnswer();
   }
   function onCorrect(){
@@ -1070,6 +1086,18 @@
     state.settings.roundSeconds = s; saveState();
     if(!round.running) timeRemain.textContent = String(s);
   });
+  passLimitInput.addEventListener('change', ()=>{
+    const v = Math.max(0, Number(passLimitInput.value)||0);
+    passLimitInput.value = String(v);
+    state.settings.passLimit = v; saveState();
+    if(round.running){
+      if(state.settings.passLimit>0 && round.pass>=state.settings.passLimit){
+        btnPass.disabled = true;
+      }else{
+        btnPass.disabled = false;
+      }
+    }
+  });
   document.querySelectorAll('[data-preset]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const v = Number(btn.getAttribute('data-preset'));
@@ -1087,6 +1115,8 @@
   $('#toggleAutoScore').addEventListener('change', (e)=>{
     state.settings.autoScoreOnCorrect = e.target.checked; saveState();
   });
+  togglePassPenalty.addEventListener('change', (e)=>{
+    state.settings.passPenalty = e.target.checked; saveState();
   $('#toggleComboBonus').addEventListener('change', (e)=>{
     state.settings.comboBonus = e.target.checked; saveState();
   });
@@ -1130,6 +1160,8 @@
     $('#toggleAutoScore').checked = state.settings.autoScoreOnCorrect;
     $('#toggleComboBonus').checked = state.settings.comboBonus;
     $('#toggleDarkMode').checked = state.settings.darkMode;
+    passLimitInput.value = String(state.settings.passLimit||0);
+    togglePassPenalty.checked = state.settings.passPenalty;
     roundSecondsInput.value = String(state.settings.roundSeconds);
     timeRemain.textContent = String(state.settings.roundSeconds);
     updateStartBtnState();
