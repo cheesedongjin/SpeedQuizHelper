@@ -714,10 +714,7 @@
     $('#timerBar').style.color='';
     bigWord.textContent = '라운드를 시작하세요';
     fitBigWord();
-
-    if(timeup){
-      beep();
-    }
+    beep({freq:300, duration:0.7, vibrate:[200,100,200]});
     if(state.settings.blockUsedCategoryOnEnd && round.categoryId){
       if(!state.usedCategoryIds.includes(round.categoryId)){
         state.usedCategoryIds.push(round.categoryId);
@@ -773,7 +770,7 @@
     const idx = round.wordIndex;
     round.pass++;
     if(w) round.passedWords.push(w);
-    beep(440);
+    beep({freq:440, vibrate:50});
     round.actionStack.push({type:'pass', word:w, index:idx});
     updateUndoState();
     afterAnswer();
@@ -785,7 +782,7 @@
     round.correct++;
     if(w) round.correctWords.push(w);
     if(state.activeTeamId && state.settings.autoScoreOnCorrect) incScore(state.activeTeamId, +1);
-    beep(1200);
+    beep({freq:1200, vibrate:[70,40,70]});
     round.actionStack.push({type:'correct', word:w, index:idx});
     updateUndoState();
     afterAnswer();
@@ -794,20 +791,25 @@
   // 단순 비프음 생성
   function beep(opt){
     try{
+      let vibratePat;
       if(typeof opt==='string'){
         new Audio(opt).play();
-        return;
+      }else{
+        const freq = typeof opt==='number'?opt:(opt&&opt.freq)||880;
+        const duration = (opt&&opt.duration)||0.45;
+        vibratePat = opt && opt.vibrate;
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type='sine'; o.frequency.value=freq;
+        g.gain.setValueAtTime(0.001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration-0.05);
+        o.start(); o.stop(ctx.currentTime+duration);
       }
-      const freq = typeof opt==='number'?opt:(opt&&opt.freq)||880;
-      const duration = (opt&&opt.duration)||0.45;
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type='sine'; o.frequency.value=freq;
-      g.gain.setValueAtTime(0.001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime+0.01);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+duration-0.05);
-      o.start(); o.stop(ctx.currentTime+duration);
+      if(vibratePat && navigator.vibrate){
+        navigator.vibrate(vibratePat);
+      }
     }catch(e){}
   }
 
